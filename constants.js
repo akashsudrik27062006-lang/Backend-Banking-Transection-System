@@ -1,1 +1,1 @@
-export const DB_NAME="Backend-Banking Transection System"
+export const DB_NAME="banking_transaction_system"
