@@ -20,6 +20,9 @@ const userSchema=new mongoose.Schema(
             type:String,
             required:[true,"Password is required for creating an account"],
             minlength:[6,"Password should contain more than 6 chaaracters"],
+        },
+        refreshToken:{
+            type:String
         }
     },
     {timestamps:true}

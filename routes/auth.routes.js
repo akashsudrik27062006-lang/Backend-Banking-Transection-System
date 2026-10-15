@@ -1,4 +1,3 @@
-import express from "express"
 import { Router } from "express"
 import {registerUser} from "../controller/auth.controller.js"
 import { loginUser } from "../controller/auth.controller.js";

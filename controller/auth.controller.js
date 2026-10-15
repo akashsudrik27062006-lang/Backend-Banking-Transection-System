@@ -63,6 +63,9 @@ const loginUser=asyncHandler(async(req,res)=>{
     const accessToken=await user.generateAccessToken();
     const refreshToken=await user.generateRefreshToken();
 
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
     const loggedInUser=await User.findById(user._id).select("-password -refreshToken");
     
     const options={
