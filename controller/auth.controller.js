@@ -2,7 +2,7 @@ import {User} from "../models/user.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-
+import {sendRegistrationEmail} from "../services/email.services.js"
 
 const registerUser=asyncHandler(async(req,res)=>{
     const {email,password,name}=req.body
@@ -33,6 +33,8 @@ const registerUser=asyncHandler(async(req,res)=>{
         httpOnly:true,
         secure:true
     }
+
+    await sendRegistrationEmail(user.email,user.name);
 
     return res.status(201)
     .cookie("Access_Token",accessToken,options)
@@ -74,6 +76,7 @@ const loginUser=asyncHandler(async(req,res)=>{
     .json(new ApiResponse(
         201,loggedInUser,"User loggedIn succesfully"
     ))
+
 })
 
 export {registerUser,loginUser}
