@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {sendRegistrationEmail} from "../services/email.services.js"
+import {TokenBlackList} from "../models/tokenBlacklist.model.js"
 
 const registerUser=asyncHandler(async(req,res)=>{
     const {email,password,name}=req.body
@@ -82,4 +83,21 @@ const loginUser=asyncHandler(async(req,res)=>{
 
 })
 
-export {registerUser,loginUser}
+const logoutUser=asyncHandler(async(req, res)=> {
+    const token = req.cookies.accessToken || req.header("Authorization")?.replace("Bearer ", "")
+
+    if (!token) {
+        return res.status(200)
+        .json(new ApiResponse(200,null,"User logged out successfully"))
+    }
+
+    await TokenBlackList.create({
+        token: token
+    })
+
+    return res.clearCookie("token")
+    .status(200)
+    .json(new ApiResponse(200,null,"User logged out successfully"))
+})
+
+export {registerUser,loginUser,logoutUser}

@@ -94,41 +94,50 @@ const createTransaction=asyncHandler(async(req,res)=>{
 
     // Start a MongoDB session and transaction
     // All database operations below will be treated as one atomic operation
-    const session=await mongoose.startSession();
-    session.startTransaction();
+    let transaction;
+    try {
+        const session = await mongoose.startSession()
+        session.startTransaction()
 
-    // Create a transaction record with PENDING status
-    const transaction=new Transaction({
-        fromAccount,
-        toAccount,
-        amount,
-        idempotencyKey,
-        status:"PENDING"
-    })
+        transaction = (await Transaction.create([ {
+            fromAccount,
+            toAccount,
+            amount,
+            idempotencyKey,
+            status: "PENDING"
+        } ], { session }))[ 0 ]
 
-    // Create a DEBIT ledger entry
-    const debitLedgerEntry=await Ledger.create([{
-        account:fromAccount,
-        amount:amount,
-        transaction:transaction._id,
-        type:"DEBIT"
-    }],{session})
+        const debitLedgerEntry = await Ledger.create([ {
+            account: fromAccount,
+            amount: amount,
+            transaction: transaction._id,
+            type: "DEBIT"
+        } ], { session })
 
-    // Create a CREDIT ledger entry
-    const creditLedgerEntry=await Ledger.create([{
-        account:toAccount,
-        amount:amount,
-        transaction:transaction._id,
-        type:"CREDIT"
-    }],{session})
+        await (() => {
+            return new Promise((resolve) => setTimeout(resolve, 15 * 1000));
+        })()
 
-    // Both ledger entries were created successfully,
-    // so mark the transaction as COMPLETED
-    transaction.status="COMPLETED"
-    await transaction.save({session})
+        const creditLedgerEntry = await Ledger.create([ {
+            account: toAccount,
+            amount: amount,
+            transaction: transaction._id,
+            type: "CREDIT"
+        } ], { session })
 
-    await session.commitTransaction();
-    session.endSession()
+        transaction.status = "COMPLETED";
+        await Transaction.findOneAndUpdate(
+            { _id: transaction._id },
+            { status: "COMPLETED" },
+            { session }
+        )
+
+        await session.commitTransaction()
+        session.endSession()
+    } catch (error) {
+        return res.status(400)
+        .json(new ApiResponse(400,null,"Transaction is Pending due to some issue, please retry after sometime"))
+    }
 
     // Send transaction confirmation email after successful commit
     await sendTransactionEmail(req.user.email,req.user.name,amount,toAccount)

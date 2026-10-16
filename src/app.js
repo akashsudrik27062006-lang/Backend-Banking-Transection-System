@@ -11,6 +11,11 @@ app.use(express.json());
 app.use(cookieParser())
 
 //routes
+
+app.get("/", (req, res) => {
+    res.send("Ledger Service is up and running");
+});
+
 app.use("/api/auth",authRouter);
 app.use("/api/account",accountRouter)
 app.use("/api/transaction",transectionRouter);

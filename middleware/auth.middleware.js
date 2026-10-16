@@ -5,14 +5,19 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken"
 import { ApiResponse } from "../utils/ApiResponse.js";
+import {TokenBlackList} from "../models/tokenBlacklist.model.js"
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
     try {
-        const token =
-            req.cookies?.accessToken ||
-            req.header("Authorization")?.replace("Bearer ", "");
+        const token =req.cookies?.accessToken ||req.header("Authorization")?.replace("Bearer ", "");
         if (!token) {
             throw new ApiError(401, "Unauthorized access");
+        }
+
+        const isBlacklisted = await TokenBlackList.findOne({ token })
+        if (isBlacklisted) {
+            return res.status(401)
+            .json(new ApiResponse(401,isBlacklisted,"Unauthorized access"))
         }
 
         const decodedToken = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
@@ -38,6 +43,12 @@ export const verifySystemUserJWT=asyncHandler(async(req,res,next)=>{
     const token = req.cookies.accessToken   ||  req.header("Authorization")?.replace("Bearer ", "")
     if (!token) {
         throw new ApiError(401,"Unauthorized access, token is missing")
+    }
+
+    const isBlacklisted = await TokenBlackList.findOne({ token })
+    if (isBlacklisted) {
+        return res.status(401)
+        .json(new ApiResponse(401,isBlacklisted,"Unauthorized access"))
     }
 
     try {
