@@ -6,6 +6,7 @@ import { Account } from "../models/account.models.js";
 import {sendTransactionFailureEmail,sendTransactionEmail,sendRegistrationEmail} from "../services/email.services.js"
 import mongoose from "mongoose";
 import { Ledger } from "../models/ledger.models.js";
+import { User } from "../models/user.models.js";
 //createTransaction 
 
 // Validate request   
@@ -106,20 +107,20 @@ const createTransaction=asyncHandler(async(req,res)=>{
     },{session})
 
     // Create a DEBIT ledger entry
-    const debitLedgerEntry=await Ledger.create({
+    const debitLedgerEntry=await Ledger.create([{
         account:fromAccount,
         amount:amount,
         transaction:transaction._id,
         type:"DEBIT"
-    },{session})
+    }],{session})
 
     // Create a CREDIT ledger entry
-    const creditLedgerEntry=await Ledger.create({
+    const creditLedgerEntry=await Ledger.create([{
         account:toAccount,
         amount:amount,
         transaction:transaction._id,
         type:"CREDIT"
-    },{session})
+    }],{session})
 
     // Both ledger entries were created successfully,
     // so mark the transaction as COMPLETED
@@ -138,4 +139,57 @@ const createTransaction=asyncHandler(async(req,res)=>{
     )
 })
 
-export {createTransaction}
+const createInitialFundsTransaction=asyncHandler(async(req,res)=>{
+    const {toAccount,amount,idempotencyKey}=req.body
+    if(!toAccount || !mongoose.isValidObjectId(toAccount) || !amount || amount<=0 || !idempotencyKey){
+        throw new ApiError(400,"toAccount, amount, idempotencyKey are required")
+    }
+
+    const toUserAccount=await Account.findById(toAccount)
+    if(!toUserAccount){
+        throw new ApiError(400,"toAccountUser doesnot exists")
+    }
+
+    const fromUserAccount=await Account.findOne({
+        user:req.user._id
+    })
+    if(!fromUserAccount){
+        throw new ApiError(400,"System user account not found")
+    }
+
+    const session=await mongoose.startSession();
+    session.startTransaction();
+
+    const transaction=new Transaction({
+        fromAccount:fromUserAccount._id,
+        toAccount,
+        amount,
+        idempotencyKey,
+        status:"PENDING",
+    })
+
+    const debitLedgerEntry=await Ledger.create([{
+        account:fromUserAccount,
+        amount,
+        transaction:transaction._id,
+        type:"DEBIT",
+    }],{session})
+    const creditLedgerEntry=await Ledger.create([{
+        account:toUserAccount,
+        amount,
+        transaction:transaction._id,
+        type:"CREDIT",
+    }],{session})
+
+    transaction.status="COMPLETED"
+    await transaction.save({session})
+
+    await session.commitTransaction();
+    session.endSession()
+
+    return res.status(201)
+    .json(new ApiResponse(201,transaction,"Initial funds transaction completed succesfully")
+    )
+})
+
+export {createTransaction,createInitialFundsTransaction}
