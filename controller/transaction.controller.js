@@ -98,13 +98,13 @@ const createTransaction=asyncHandler(async(req,res)=>{
     session.startTransaction();
 
     // Create a transaction record with PENDING status
-    const transaction=await Transaction.create({
+    const transaction=new Transaction({
         fromAccount,
         toAccount,
         amount,
         idempotencyKey,
         status:"PENDING"
-    },{session})
+    })
 
     // Create a DEBIT ledger entry
     const debitLedgerEntry=await Ledger.create([{
