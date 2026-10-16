@@ -44,11 +44,25 @@ const sendEmail = async (to, subject, text, html) => {
 
 
 async function sendRegistrationEmail(userEmail, name) {
-    const subject = 'Welcome to Banking Transection System!';
+    const subject = 'Welcome to Banking Transaction System!';
     const text = `Hello ${name},\n\nThank you for registering at Banking Transection System. We're excited to have you on board!\n\nBest regards,\nThe Banking Transection System Team`;
     const html = `<p>Hello ${name},</p><p>Thank you for registering at Banking Transection System. We're excited to have you on board!</p><p>Best regards,<br>The Banking Transection System Team</p>`;
 
     await sendEmail(userEmail, subject, text, html);
 }
+async function sendTransactionEmail(userEmail, name, amount, toAccount) {
+    const subject = 'Transaction Successful!';
+    const text = `Hello ${name},\n\nYour transaction of ₹${amount} to account ${toAccount} was successful.\n\nThank you for using Banking Transaction System!\n\nBest regards,\nThe Banking Transaction System Team`;
+    const html = `<p>Hello ${name},</p><p>Your transaction of ₹${amount} to account ${toAccount} was successful.</p><p>Thank you for using Banking Transaction System!</p><p>Best regards,<br>The Banking Transaction System Team</p>`;
 
-export { sendRegistrationEmail };
+    await sendEmail(userEmail, subject, text, html);
+}
+async function sendTransactionFailureEmail(userEmail, name, amount, toAccount) {
+    const subject = 'Transaction Failed';
+    const text = `Hello ${name},\n\nWe regret to inform you that your transaction of ₹${amount} to account ${toAccount} has failed.\n\nPlease try again later or contact support if the problem persists.\n\nBest regards,\nThe Banking Transaction System Team`;
+    const html = `<p>Hello ${name},</p><p>We regret to inform you that your transaction of ₹${amount} to account ${toAccount} has failed.</p><p>Please try again later or contact support if the problem persists.</p><p>Best regards,<br>The Banking Transaction System Team</p>`;
+
+    await sendEmail(userEmail, subject, text, html);
+}
+
+export { sendRegistrationEmail,sendTransactionEmail,sendTransactionFailureEmail };
